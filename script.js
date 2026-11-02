@@ -8,6 +8,52 @@ const USERS_KEY = "lp_users";
 const SESSION_KEY = "lp_session";
 const RESET_KEY = "lp_reset";
 
+// ---------- Email delivery (the real-website way) ----------
+// Real websites never ask visitors to connect Gmail. The WEBSITE sends
+// mail from its own mail service. Here that service is EmailJS:
+// the site owner connects their email ONCE on emailjs.com, then every
+// visitor automatically gets real emails — no visitor ever connects
+// anything. Until the keys below are filled in, the page shows the
+// exact email in the on-page preview instead, so the flow still works.
+const EMAIL_CONFIG = {
+  enabled: false, // set to true after EmailJS setup (see README)
+  publicKey: "YOUR_EMAILJS_PUBLIC_KEY",
+  serviceId: "YOUR_SERVICE_ID",
+  welcomeTemplateId: "YOUR_WELCOME_TEMPLATE_ID",
+  resetTemplateId: "YOUR_RESET_TEMPLATE_ID",
+};
+
+async function sendRealEmail(templateId, params) {
+  const res = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      service_id: EMAIL_CONFIG.serviceId,
+      template_id: templateId,
+      user_id: EMAIL_CONFIG.publicKey,
+      template_params: params,
+    }),
+  });
+  if (!res.ok) throw new Error("EmailJS send failed: " + res.status);
+}
+
+// Sends the email for real when configured, otherwise shows the exact
+// email in the on-page preview. Returns true when really delivered.
+async function deliverEmail(to, subject, body, templateId, params) {
+  if (!EMAIL_CONFIG.enabled) {
+    showMail(to, subject, body);
+    return false;
+  }
+  try {
+    await sendRealEmail(templateId, params);
+    mailPreview.hidden = true;
+    return true;
+  } catch {
+    showMail(to, subject, body);
+    return false;
+  }
+}
+
 const $ = (id) => document.getElementById(id);
 
 const authCard = $("authCard");
@@ -146,12 +192,21 @@ $("signupForm").addEventListener("submit", async (e) => {
   users.push({ username, email, passHash: await hashPassword(pass) });
   saveUsers(users);
 
-  showMail(
+  const welcomeBody =
+    `Hi ${username},\n\nYou have successfully created your account.\n\nUsername: ${username}\nEmail: ${email}\n\nYou can now sign in with your username and password.\n\nThanks for joining us!`;
+  const delivered = await deliverEmail(
     email,
     "Welcome! Your account has been created",
-    `Hi ${username},\n\nYou have successfully created your account.\n\nUsername: ${username}\nEmail: ${email}\n\nYou can now sign in with your username and password.\n\nThanks for joining us!`
+    welcomeBody,
+    EMAIL_CONFIG.welcomeTemplateId,
+    { to_email: email, to_name: username, username }
   );
-  showMsg("Account created! A confirmation email has been sent to your inbox.", "success");
+  showMsg(
+    delivered
+      ? "Account created! A confirmation email has been sent to your inbox."
+      : "Account created! The confirmation email is shown below.",
+    "success"
+  );
   e.target.reset();
   $("strength").hidden = true;
   setTimeout(() => showView("signinForm"), 1200);
@@ -177,7 +232,7 @@ $("signinForm").addEventListener("submit", async (e) => {
 });
 
 // ---------- forgot password ----------
-$("forgotForm").addEventListener("submit", (e) => {
+$("forgotForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const email = $("fpEmail").value.trim().toLowerCase();
   const user = getUsers().find((u) => u.email === email);
@@ -186,12 +241,21 @@ $("forgotForm").addEventListener("submit", (e) => {
   const code = String(Math.floor(100000 + Math.random() * 900000));
   localStorage.setItem(RESET_KEY, JSON.stringify({ email, code, at: Date.now() }));
 
-  showMail(
+  const resetBody =
+    `Hi ${user.username},\n\nYour password reset code is:\n\n${code}\n\nEnter this code on the reset page to set a new password. The code expires in 15 minutes.\n\nIf you did not request this, please ignore this email.`;
+  const delivered = await deliverEmail(
     email,
     "Your password reset code",
-    `Hi ${user.username},\n\nYour password reset code is:\n\n${code}\n\nEnter this code on the reset page to set a new password. The code expires in 15 minutes.\n\nIf you did not request this, please ignore this email.`
+    resetBody,
+    EMAIL_CONFIG.resetTemplateId,
+    { to_email: email, to_name: user.username, reset_code: code }
   );
-  showMsg("Reset code sent to your email.", "success");
+  showMsg(
+    delivered
+      ? "Reset code sent to your email."
+      : "Reset code is shown below (email preview).",
+    "success"
+  );
   e.target.reset();
   setTimeout(() => showView("resetForm"), 1200);
 });
