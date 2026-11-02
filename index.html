@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — Welcome Back</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <main class="shell">
+    <!-- ============ AUTH CARD ============ -->
+    <section id="authCard" class="card">
+      <div class="brand">
+        <div class="logo">L</div>
+        <h1>Welcome</h1>
+        <p class="subtitle">Sign in to continue, or create a new account.</p>
+      </div>
+
+      <div class="tabs">
+        <button id="tabSignin" class="tab active">Sign In</button>
+        <button id="tabSignup" class="tab">Sign Up</button>
+      </div>
+
+      <p id="formMsg" class="form-msg" hidden></p>
+
+      <!-- SIGN IN -->
+      <form id="signinForm" class="form" novalidate>
+        <label class="field">
+          <span>Username or Email</span>
+          <input id="siUser" type="text" placeholder="Enter username or email" autocomplete="username" required />
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <div class="password-wrap">
+            <input id="siPass" type="password" placeholder="Enter your password" autocomplete="current-password" required />
+            <button type="button" class="eye" data-target="siPass" aria-label="Show password">👁</button>
+          </div>
+        </label>
+        <div class="row-between">
+          <label class="remember"><input id="siRemember" type="checkbox" /> Remember me</label>
+          <button type="button" id="forgotLink" class="link-btn">Forgot password?</button>
+        </div>
+        <button type="submit" class="btn-primary">Sign In →</button>
+        <p class="switch-text">Don't have an account? <button type="button" class="link-btn" data-goto="signup">Sign up</button></p>
+      </form>
+
+      <!-- SIGN UP -->
+      <form id="signupForm" class="form" hidden novalidate>
+        <label class="field">
+          <span>Username</span>
+          <input id="suUser" type="text" placeholder="Choose a username" autocomplete="username" required />
+        </label>
+        <label class="field">
+          <span>Email</span>
+          <input id="suEmail" type="email" placeholder="you@example.com" autocomplete="email" required />
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <div class="password-wrap">
+            <input id="suPass" type="password" placeholder="Minimum 8 characters" autocomplete="new-password" required />
+            <button type="button" class="eye" data-target="suPass" aria-label="Show password">👁</button>
+          </div>
+        </label>
+        <div id="strength" class="strength" hidden>
+          <div class="strength-bar"><div id="strengthFill"></div></div>
+          <span id="strengthLabel"></span>
+        </div>
+        <label class="field">
+          <span>Confirm Password</span>
+          <div class="password-wrap">
+            <input id="suConfirm" type="password" placeholder="Repeat your password" autocomplete="new-password" required />
+            <button type="button" class="eye" data-target="suConfirm" aria-label="Show password">👁</button>
+          </div>
+        </label>
+        <button type="submit" class="btn-primary">Create Account →</button>
+        <p class="switch-text">Already have an account? <button type="button" class="link-btn" data-goto="signin">Sign in</button></p>
+      </form>
+
+      <!-- FORGOT PASSWORD -->
+      <form id="forgotForm" class="form" hidden novalidate>
+        <h2 class="form-title">Forgot password?</h2>
+        <p class="form-desc">Enter your account email and we will send you a reset code.</p>
+        <label class="field">
+          <span>Email</span>
+          <input id="fpEmail" type="email" placeholder="you@example.com" autocomplete="email" required />
+        </label>
+        <button type="submit" class="btn-primary">Send Reset Code →</button>
+        <p class="switch-text"><button type="button" class="link-btn" data-goto="signin">← Back to Sign In</button></p>
+      </form>
+
+      <!-- RESET PASSWORD -->
+      <form id="resetForm" class="form" hidden novalidate>
+        <h2 class="form-title">Reset your password</h2>
+        <p class="form-desc">Enter the 6-digit code sent to your email, then choose a new password.</p>
+        <label class="field">
+          <span>Reset Code</span>
+          <input id="rpCode" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" required />
+        </label>
+        <label class="field">
+          <span>New Password</span>
+          <div class="password-wrap">
+            <input id="rpPass" type="password" placeholder="Minimum 8 characters" autocomplete="new-password" required />
+            <button type="button" class="eye" data-target="rpPass" aria-label="Show password">👁</button>
+          </div>
+        </label>
+        <button type="submit" class="btn-primary">Set New Password →</button>
+        <p class="switch-text"><button type="button" class="link-btn" data-goto="signin">← Back to Sign In</button></p>
+      </form>
+    </section>
+
+    <!-- ============ EMAIL PREVIEW (simulated inbox) ============ -->
+    <section id="mailPreview" class="mail" hidden>
+      <div class="mail-head">
+        <span>📧 Email received</span>
+        <button type="button" id="closeMail" class="mail-close">✕</button>
+      </div>
+      <p class="mail-to">To: <strong id="mailTo"></strong></p>
+      <p class="mail-subject">Subject: <strong id="mailSubject"></strong></p>
+      <div id="mailBody" class="mail-body"></div>
+      <p class="mail-note">Demo note: this preview shows the exact email that would be delivered. Connect a real email service to deliver it to the inbox.</p>
+    </section>
+
+    <!-- ============ DASHBOARD ============ -->
+    <section id="dashboard" class="card" hidden>
+      <div class="brand">
+        <div class="logo">✓</div>
+        <h1 id="dashTitle">Welcome!</h1>
+        <p class="subtitle">You are signed in.</p>
+      </div>
+      <div class="dash-info">
+        <p><span>Username</span><strong id="dashUser"></strong></p>
+        <p><span>Email</span><strong id="dashEmail"></strong></p>
+      </div>
+      <button id="logoutBtn" class="btn-primary">Log Out</button>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
