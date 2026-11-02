@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign Up</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <main class="shell">
+    <section class="card">
+      <div class="brand">
+        <div class="logo">L</div>
+        <h1>Create Account</h1>
+        <p class="subtitle">Fill in your details to create a new account.</p>
+      </div>
+
+      <p id="formMsg" class="form-msg" hidden></p>
+
+      <form id="signupForm" class="form" novalidate>
+        <label class="field">
+          <span>Username</span>
+          <input id="suUser" type="text" placeholder="Choose a username" autocomplete="username" required />
+        </label>
+        <label class="field">
+          <span>Email</span>
+          <input id="suEmail" type="email" placeholder="you@example.com" autocomplete="email" required />
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <div class="password-wrap">
+            <input id="suPass" type="password" placeholder="Minimum 8 characters" autocomplete="new-password" required />
+            <button type="button" class="eye" data-target="suPass" aria-label="Show password">👁</button>
+          </div>
+        </label>
+        <div id="strength" class="strength" hidden>
+          <div class="strength-bar"><div id="strengthFill"></div></div>
+          <span id="strengthLabel"></span>
+        </div>
+        <label class="field">
+          <span>Confirm Password</span>
+          <div class="password-wrap">
+            <input id="suConfirm" type="password" placeholder="Repeat your password" autocomplete="new-password" required />
+            <button type="button" class="eye" data-target="suConfirm" aria-label="Show password">👁</button>
+          </div>
+        </label>
+        <button type="submit" class="btn-primary">Create Account →</button>
+        <p class="switch-text">Already have an account? <a class="link-btn" href="index.html">Login</a></p>
+      </form>
+
+      <!-- Success state: button back to the login page -->
+      <div id="successBox" class="success-panel" hidden>
+        <div class="success-icon">✓</div>
+        <h2>Account Created!</h2>
+        <p id="successText"></p>
+        <a class="btn-primary" href="index.html">Go to Login →</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="auth.js"></script>
+  <script>
+    const form = document.getElementById("signupForm");
+    const msg = document.getElementById("formMsg");
+    const successBox = document.getElementById("successBox");
+
+    document.getElementById("suPass").addEventListener("input", (e) => {
+      const v = e.target.value;
+      const box = document.getElementById("strength");
+      if (!v) {
+        box.hidden = true;
+        return;
+      }
+      box.hidden = false;
+      let score = 0;
+      if (v.length >= 8) score++;
+      if (v.length >= 12) score++;
+      if (/[a-z]/.test(v) && /[A-Z]/.test(v)) score++;
+      if (/\d/.test(v)) score++;
+      if (/[^A-Za-z0-9]/.test(v)) score++;
+      const pct = Math.min(100, (score / 5) * 100);
+      const fill = document.getElementById("strengthFill");
+      fill.style.width = pct + "%";
+      fill.style.background = pct < 40 ? "#ef4444" : pct < 80 ? "#f59e0b" : "#22c55e";
+      document.getElementById("strengthLabel").textContent = pct < 40 ? "Weak" : pct < 80 ? "Good" : "Strong";
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const username = document.getElementById("suUser").value.trim();
+      const email = document.getElementById("suEmail").value.trim().toLowerCase();
+      const pass = document.getElementById("suPass").value;
+      const confirm = document.getElementById("suConfirm").value;
+
+      if (username.length < 3) return showMsg(msg, "Username must be at least 3 characters.", "error");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showMsg(msg, "Please enter a valid email address.", "error");
+      if (pass.length < 8) return showMsg(msg, "Password must be at least 8 characters.", "error");
+      if (pass !== confirm) return showMsg(msg, "Passwords do not match.", "error");
+
+      const users = getUsers();
+      if (users.some((u) => u.username.toLowerCase() === username.toLowerCase())) {
+        return showMsg(msg, "This username is already taken.", "error");
+      }
+      if (users.some((u) => u.email === email)) {
+        return showMsg(msg, "An account with this email already exists.", "error");
+      }
+
+      users.push({ username, email, passHash: await hashPassword(pass) });
+      saveUsers(users);
+
+      // Real email via the site's own mail service (EmailJS).
+      const delivered = await deliverEmail(EMAIL_CONFIG.welcomeTemplateId, {
+        to_email: email,
+        to_name: username,
+        username,
+      });
+
+      form.hidden = true;
+      hideMsg(msg);
+      document.getElementById("successText").textContent = delivered
+        ? `Your account has been created, ${username}! A confirmation email has been sent to ${email}.`
+        : `Your account has been created, ${username}! Email delivery is not connected yet — connect the site's email service (see README) to receive the confirmation email in your inbox.`;
+      successBox.hidden = false;
+    });
+  </script>
+</body>
+</html>
