@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Forgot Password</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <main class="shell">
+    <section class="card">
+      <div class="brand">
+        <div class="logo">L</div>
+        <h1>Forgot Password?</h1>
+        <p class="subtitle">No worries — we'll send you a reset code.</p>
+      </div>
+
+      <p id="formMsg" class="form-msg" hidden></p>
+
+      <!-- Step 1: request code -->
+      <form id="forgotForm" class="form" novalidate>
+        <p class="form-desc">Enter your account email and we will send you a reset code.</p>
+        <label class="field">
+          <span>Email</span>
+          <input id="fpEmail" type="email" placeholder="you@example.com" autocomplete="email" required />
+        </label>
+        <button type="submit" class="btn-primary">Send Reset Code →</button>
+        <p class="switch-text"><a class="link-btn" href="index.html">← Back to Login</a></p>
+      </form>
+
+      <!-- Step 2: verify code + new password -->
+      <form id="resetForm" class="form" hidden novalidate>
+        <p class="form-desc">Enter the 6-digit code sent to your email, then choose a new password.</p>
+        <label class="field">
+          <span>Reset Code</span>
+          <input id="rpCode" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" required />
+        </label>
+        <label class="field">
+          <span>New Password</span>
+          <div class="password-wrap">
+            <input id="rpPass" type="password" placeholder="Minimum 8 characters" autocomplete="new-password" required />
+            <button type="button" class="eye" data-target="rpPass" aria-label="Show password">👁</button>
+          </div>
+        </label>
+        <button type="submit" class="btn-primary">Set New Password →</button>
+        <p class="switch-text"><a class="link-btn" href="index.html">← Back to Login</a></p>
+      </form>
+
+      <!-- Success state -->
+      <div id="successBox" class="success-panel" hidden>
+        <div class="success-icon">✓</div>
+        <h2>Password Updated!</h2>
+        <p>You can now sign in with your new password.</p>
+        <a class="btn-primary" href="index.html">Go to Login →</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="auth.js"></script>
+  <script>
+    const forgotForm = document.getElementById("forgotForm");
+    const resetForm = document.getElementById("resetForm");
+    const msg = document.getElementById("formMsg");
+    const successBox = document.getElementById("successBox");
+
+    forgotForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("fpEmail").value.trim().toLowerCase();
+      const user = getUsers().find((u) => u.email === email);
+      if (!user) return showMsg(msg, "No account found with this email.", "error");
+
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      localStorage.setItem(RESET_KEY, JSON.stringify({ email, code, at: Date.now() }));
+
+      const delivered = await deliverEmail(EMAIL_CONFIG.resetTemplateId, {
+        to_email: email,
+        to_name: user.username,
+        reset_code: code,
+      });
+
+      showMsg(
+        msg,
+        delivered
+          ? "Reset code sent to your email."
+          : "Email delivery is not connected yet — connect the site's email service (see README) to receive the code in your inbox.",
+        delivered ? "success" : "notice"
+      );
+      forgotForm.hidden = true;
+      resetForm.hidden = false;
+    });
+
+    resetForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const code = document.getElementById("rpCode").value.trim();
+      const newPass = document.getElementById("rpPass").value;
+
+      let reset;
+      try {
+        reset = JSON.parse(localStorage.getItem(RESET_KEY));
+      } catch {
+        reset = null;
+      }
+      if (!reset) return showMsg(msg, "No reset request found. Please request a code first.", "error");
+      if (Date.now() - reset.at > 15 * 60 * 1000) {
+        localStorage.removeItem(RESET_KEY);
+        return showMsg(msg, "This code has expired. Please request a new one.", "error");
+      }
+      if (code !== reset.code) return showMsg(msg, "Incorrect reset code.", "error");
+      if (newPass.length < 8) return showMsg(msg, "New password must be at least 8 characters.", "error");
+
+      const users = getUsers();
+      const user = users.find((u) => u.email === reset.email);
+      if (!user) return showMsg(msg, "Account not found.", "error");
+      user.passHash = await hashPassword(newPass);
+      saveUsers(users);
+      localStorage.removeItem(RESET_KEY);
+
+      resetForm.hidden = true;
+      hideMsg(msg);
+      successBox.hidden = false;
+    });
+  </script>
+</body>
+</html>
